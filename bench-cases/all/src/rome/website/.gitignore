@@ -1,0 +1,5 @@
+node_modules
+build
+
+# Auto generated
+src/_includes/styles

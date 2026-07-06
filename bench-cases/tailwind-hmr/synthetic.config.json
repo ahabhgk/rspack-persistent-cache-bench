@@ -1,0 +1,14 @@
+{
+  "seed": 8675309,
+  "codeModules": 10895,
+  "routes": 355,
+  "componentsPerRoute": 18,
+  "utilitiesPerRoute": 4,
+  "lazyModulesPerRoute": 3,
+  "workers": 120,
+  "svgAssets": 1184,
+  "cssModules": 217,
+  "localeFiles": 111,
+  "localeTotalBytes": 151289856,
+  "payloadEntriesPerModule": 72
+}

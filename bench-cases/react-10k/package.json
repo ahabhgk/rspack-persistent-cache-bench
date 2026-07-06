@@ -1,0 +1,31 @@
+{
+  "name": "react-10k",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "bench:rspack": "NODE_ENV=production rspack build --config rspack.config.js",
+    "bench:rspack:persistent": "BENCH_PERSISTENT_CACHE=1 NODE_ENV=production rspack build --config rspack.config.js",
+    "bench:rspack:watch": "NODE_ENV=development rspack build --watch --config rspack.config.js",
+    "bench:rspack:watch:persistent": "BENCH_PERSISTENT_CACHE=1 NODE_ENV=development rspack build --watch --config rspack.config.js",
+    "bench:webpack": "NODE_ENV=production webpack --config webpack.config.js",
+    "bench:webpack:persistent": "BENCH_PERSISTENT_CACHE=1 NODE_ENV=production webpack --config webpack.config.js",
+    "bench:webpack:watch": "NODE_ENV=development webpack --watch --config webpack.config.js",
+    "bench:webpack:watch:persistent": "BENCH_PERSISTENT_CACHE=1 NODE_ENV=development webpack --watch --config webpack.config.js",
+    "bench:utoo": "NODE_ENV=production up build",
+    "bench:utoo:persistent": "BENCH_PERSISTENT_CACHE=1 NODE_ENV=production up build",
+    "bench:utoo:dev": "NODE_ENV=development up dev",
+    "bench:utoo:dev:persistent": "BENCH_PERSISTENT_CACHE=1 NODE_ENV=development up dev",
+    "bench:next": "node ../../scripts/prepare-next-case.mjs --import-mode=static && NODE_ENV=production next build .bench-next/project --turbopack --experimental-build-mode=compile",
+    "bench:next:persistent": "BENCH_PERSISTENT_CACHE=1 node ../../scripts/prepare-next-case.mjs --import-mode=static && BENCH_PERSISTENT_CACHE=1 NODE_ENV=production next build .bench-next/project --turbopack --experimental-build-mode=compile",
+    "bench:next:dev": "node ../../scripts/prepare-next-case.mjs --import-mode=static && NODE_ENV=development next dev .bench-next/project --turbopack",
+    "bench:next:dev:persistent": "BENCH_PERSISTENT_CACHE=1 node ../../scripts/prepare-next-case.mjs --import-mode=static && BENCH_PERSISTENT_CACHE=1 NODE_ENV=development next dev .bench-next/project --turbopack"
+  },
+  "dependencies": {
+    "@iconify-icons/material-symbols": "^1.2.58",
+    "@iconify/react": "^6.0.2",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.18.1"
+  },
+  "browserslist": "Chrome >= 93"
+}

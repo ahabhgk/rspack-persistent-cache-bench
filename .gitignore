@@ -1,0 +1,16 @@
+node_modules/
+.pnpm-store/
+
+# Framework output
+.next/
+
+# Benchmark output and caches
+.bench-cache/
+.bench-next/
+.bench-out/
+.turbopack/
+.results/
+
+# Generated case fixtures
+bench-cases/tailwind-hmr/src/.generated/
+bench-cases/tailwind-hmr/public/.generated/

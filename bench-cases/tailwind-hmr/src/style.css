@@ -1,0 +1,7 @@
+@import "tailwindcss" source("./");
+@source "./.generated";
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+}
