@@ -1,7 +1,7 @@
 import { DEFAULT_CASE_ID, listCaseIds, prepareCase, selectCases } from "./cases.mjs";
 import { createCaseResult, createReport, printReport, writeReport } from "./lib/report.mjs";
 import { resolveBuildMemoryMode, resolveDevMemoryMode } from "./lib/process.mjs";
-import { BUILD_TARGETS, DEV_TARGETS, ensureToolBins, TOOL_IDS } from "./lib/tools.mjs";
+import { BUILD_TARGETS, DEFAULT_TOOL_IDS, DEV_TARGETS, ensureToolBins, TOOL_IDS } from "./lib/tools.mjs";
 import { DEFAULT_METRIC_IDS, listMetricIds, selectMetrics } from "./metrics/registry.mjs";
 import { selectRuns } from "./runs/registry.mjs";
 
@@ -53,6 +53,9 @@ async function main(opts) {
       if (runResult.editTarget) {
         caseResult.editTarget = runResult.editTarget;
       }
+      if (runResult.editTargets) {
+        caseResult.editTargets = runResult.editTargets;
+      }
     }
 
     caseResults.push(caseResult);
@@ -66,7 +69,7 @@ async function main(opts) {
 function parseArgs(args) {
   const opts = {
     metricIds: DEFAULT_METRIC_IDS,
-    tools: TOOL_IDS,
+    tools: DEFAULT_TOOL_IDS,
     caseIds: listCaseIds(),
     runs: 3,
     edits: 5,
@@ -149,8 +152,8 @@ function parseArgs(args) {
   if (!["auto", "time", "ps", "off"].includes(opts.memoryMode)) {
     throw new Error("--memory-mode must be one of: auto, time, ps, off");
   }
-  if (opts.devMemoryMode != null && !["auto", "ps", "off"].includes(opts.devMemoryMode)) {
-    throw new Error("--dev-memory-mode must be one of: auto, ps, off");
+  if (opts.devMemoryMode != null && !["auto", "pidusage", "ps", "off"].includes(opts.devMemoryMode)) {
+    throw new Error("--dev-memory-mode must be one of: auto, pidusage, ps, off");
   }
 
   return opts;
@@ -185,16 +188,16 @@ function printHelpAndExit() {
 Options:
   --metrics=<ids>              Comma-separated metric ids
   --tools=rspack,webpack,next,utoo
-                              Tools to run
+                              Tools to run (default: ${DEFAULT_TOOL_IDS.join(",")})
   --case=${DEFAULT_CASE_ID}             Single bench case
   --cases=react-5k,react-10k  Comma-separated bench cases
   --list-cases                Print available bench cases
   --list-metrics              Print available metric ids
   --runs=3                    Measured production build runs per mode
   --edits=5                   Dev file edits per cache mode
-  --sample-interval-ms=50     RSS polling interval
+  --sample-interval-ms=50     Build ps RSS polling interval
   --memory-mode=auto          Build RSS mode: auto, time, ps, or off
-  --dev-memory-mode=auto      Dev RSS mode: auto, ps, or off
+  --dev-memory-mode=auto      Dev RSS mode: auto, pidusage, ps alias, or off
   --edit-delay-ms=0           Delay after each dev edit before waiting/requesting
   --ready-timeout-ms=120000   Initial dev compile timeout
   --rebuild-timeout-ms=120000 Watch rebuild timeout

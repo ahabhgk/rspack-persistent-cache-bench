@@ -1,5 +1,7 @@
 allowBuilds:
-  '@swc/core': set this to true or false
-  core-js: set this to true or false
-  sharp: set this to true or false
-  styled-components: set this to true or false
+  '@swc/core': true
+  core-js: false
+  core-js-pure: false
+  puppeteer: true
+  sharp: false
+  styled-components: false

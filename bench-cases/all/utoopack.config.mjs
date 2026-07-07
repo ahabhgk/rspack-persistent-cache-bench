@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const caseDir = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const isProd = process.env.NODE_ENV === "production";
+const sourcePathCondition = /^(?:\.\/)?(?:bench-cases\/all\/)?src\//;
 const persistentCache = process.env.BENCH_PERSISTENT_CACHE === "1";
 const babelRuntimeDir = path.dirname(require.resolve("babel-runtime-7-12/package.json"));
 const react17Dir = path.dirname(require.resolve("react17/package.json"));
@@ -22,10 +23,8 @@ export default {
   stats: false,
   entry: [
     {
-      import: "./src/index.js",
-      html: {
-        template: "./index.html"
-      }
+      import: "./src/entry.js",
+      html: isProd ? { template: "./index.html" } : { templateContent: renderDevHtml() }
     }
   ],
   output: {
@@ -80,10 +79,15 @@ export default {
   },
   devServer: {
     hot: true,
-    host: "127.0.0.1"
+    host: "127.0.0.1",
+    port: Number(process.env.BENCH_DEV_PORT) || undefined
   },
   nodePolyfill: true
 };
+
+function renderDevHtml() {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Benchmark</title></head><body><div id="react-root"></div><div id="root"></div></body></html>`;
+}
 
 function swcTypeScriptRule(tsx) {
   return {
@@ -91,6 +95,7 @@ function swcTypeScriptRule(tsx) {
       {
         loader: "swc-loader",
         options: {
+          sync: true,
           jsc: {
             parser: {
               syntax: "typescript",
@@ -105,7 +110,10 @@ function swcTypeScriptRule(tsx) {
         }
       }
     ],
-    as: "*.js"
+    as: "*.js",
+    condition: {
+      path: sourcePathCondition
+    }
   };
 }
 

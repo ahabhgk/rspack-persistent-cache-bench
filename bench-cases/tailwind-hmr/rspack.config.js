@@ -2,6 +2,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import * as rspackModule from "@rspack/core";
+import createBenchCompileTimingPlugin from "../../scripts/lib/bench-compile-timing-plugin.cjs";
 
 const caseDir = path.dirname(fileURLToPath(import.meta.url));
 const configPath = fileURLToPath(import.meta.url);
@@ -61,10 +62,25 @@ export default {
   optimization: {
     minimize: isProd
   },
-  plugins: isProd ? [] : [new rspack.HotModuleReplacementPlugin()],
+  plugins: isProd
+    ? []
+    : [
+        new rspack.HtmlRspackPlugin({ templateContent: renderDevHtml() }),
+        new rspack.HotModuleReplacementPlugin(),
+        createBenchCompileTimingPlugin()
+      ],
+  devServer: {
+    hot: true,
+    host: "127.0.0.1",
+    port: Number(process.env.BENCH_DEV_PORT) || undefined
+  },
   watchOptions: {
     aggregateTimeout: 0,
     ignored: ["**/node_modules/**", "**/.results/**", "**/.bench-cache/**", "**/.bench-out/**"]
   },
   stats: "errors-warnings"
 };
+
+function renderDevHtml() {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Benchmark</title></head><body><div id="react-root"></div><div id="root"></div></body></html>`;
+}

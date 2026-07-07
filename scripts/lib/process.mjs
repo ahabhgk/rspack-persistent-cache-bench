@@ -3,6 +3,7 @@ import fs from "node:fs";
 import net from "node:net";
 import { promisify } from "node:util";
 import { performance } from "node:perf_hooks";
+import pidusage from "pidusage";
 import { lastLines } from "./format.mjs";
 import { root } from "./paths.mjs";
 
@@ -77,13 +78,16 @@ export async function resolveBuildMemoryMode(memoryMode) {
 }
 
 export function resolveDevMemoryMode(memoryMode) {
-  if (memoryMode === "off" || memoryMode === "ps") {
+  if (memoryMode === "off" || memoryMode === "pidusage") {
     return memoryMode;
   }
-  if (memoryMode === "auto") {
-    return "ps";
+  if (memoryMode === "ps") {
+    return "pidusage";
   }
-  throw new Error("--dev-memory-mode must be one of: auto, ps, off");
+  if (memoryMode === "auto") {
+    return "pidusage";
+  }
+  throw new Error("--dev-memory-mode must be one of: auto, pidusage, ps, off");
 }
 
 export async function detectUsrTimeMode() {
@@ -275,27 +279,89 @@ export function startRssSampler(pid, { memoryMode, sampleIntervalMs }) {
   };
 }
 
+export async function measureProcessTreeRssMbAtIdle(
+  rootPid,
+  { memoryMode, timeoutMs = 30000, idleIntervalMs = 200, cpuThreshold = 0 }
+) {
+  if (memoryMode !== "ps" || rootPid == null || process.platform === "win32") {
+    return null;
+  }
+
+  const startedAt = performance.now();
+  while (performance.now() - startedAt < timeoutMs) {
+    const stats = await getProcessTreeStats(rootPid);
+    if (stats == null || stats.cpu <= cpuThreshold) {
+      break;
+    }
+    await delay(idleIntervalMs);
+  }
+
+  const stats = await getProcessTreeStats(rootPid);
+  return stats == null ? null : roundMb(stats.rssMb);
+}
+
+export async function measureProcessRssMbAtCpuIdle(
+  pid,
+  { memoryMode, timeoutMs = 30000, idleIntervalMs = 200, cpuThreshold = 0 }
+) {
+  if (memoryMode !== "pidusage" || pid == null) {
+    return null;
+  }
+
+  const startedAt = performance.now();
+  while (performance.now() - startedAt < timeoutMs) {
+    const info = await safePidusage(pid);
+    if (info == null || info.cpu <= cpuThreshold) {
+      break;
+    }
+    await delay(idleIntervalMs);
+  }
+
+  const info = await safePidusage(pid);
+  return info == null ? null : roundMb(info.memory / 1024 / 1024);
+}
+
+async function safePidusage(pid) {
+  try {
+    return await pidusage(pid);
+  } catch {
+    return null;
+  }
+}
+
 export async function getProcessTreeRssMb(rootPid) {
+  const stats = await getProcessTreeStats(rootPid);
+  return stats?.rssMb ?? null;
+}
+
+export async function getProcessTreeStats(rootPid) {
   if (process.platform === "win32") {
     return null;
   }
 
   try {
-    const { stdout } = await execFileAsync("ps", ["-axo", "pid=,ppid=,rss="], {
+    const { stdout } = await execFileAsync("ps", ["-axo", "pid=,ppid=,rss=,%cpu="], {
       maxBuffer: 10 * 1024 * 1024
     });
     const rows = stdout
       .trim()
       .split("\n")
       .map((line) => {
-        const [pidText, ppidText, rssText] = line.trim().split(/\s+/);
+        const [pidText, ppidText, rssText, cpuText] = line.trim().split(/\s+/);
         return {
           pid: Number(pidText),
           ppid: Number(ppidText),
-          rssKb: Number(rssText)
+          rssKb: Number(rssText),
+          cpu: Number(cpuText)
         };
       })
-      .filter((row) => Number.isFinite(row.pid) && Number.isFinite(row.ppid) && Number.isFinite(row.rssKb));
+      .filter(
+        (row) =>
+          Number.isFinite(row.pid) &&
+          Number.isFinite(row.ppid) &&
+          Number.isFinite(row.rssKb) &&
+          Number.isFinite(row.cpu)
+      );
 
     const rowsByPid = new Map();
     const childrenByParent = new Map();
@@ -309,6 +375,7 @@ export async function getProcessTreeRssMb(rootPid) {
     const queue = [rootPid];
     const seen = new Set();
     let totalKb = 0;
+    let totalCpu = 0;
 
     while (queue.length > 0) {
       const pid = queue.shift();
@@ -319,16 +386,24 @@ export async function getProcessTreeRssMb(rootPid) {
       const row = rowsByPid.get(pid);
       if (row) {
         totalKb += row.rssKb;
+        totalCpu += row.cpu;
       }
       for (const child of childrenByParent.get(pid) ?? []) {
         queue.push(child.pid);
       }
     }
 
-    return totalKb / 1024;
+    return {
+      rssMb: totalKb / 1024,
+      cpu: totalCpu
+    };
   } catch {
     return null;
   }
+}
+
+function roundMb(value) {
+  return Math.round(value * 1000) / 1000;
 }
 
 export async function fetchResource(url, timeoutMs, accept) {

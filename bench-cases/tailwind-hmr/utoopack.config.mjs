@@ -40,6 +40,7 @@ export default {
   },
   devServer: {
     hot: true,
-    host: "127.0.0.1"
+    host: "127.0.0.1",
+    port: Number(process.env.BENCH_DEV_PORT) || undefined
   }
 };

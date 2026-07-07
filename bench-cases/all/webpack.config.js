@@ -1,11 +1,13 @@
 const path = require("node:path");
+const webpack = require("webpack");
+const HtmlWebpackPlugin = require("html-webpack-plugin");
+const createBenchCompileTimingPlugin = require("../../scripts/lib/bench-compile-timing-plugin.cjs");
 
 const caseDir = __dirname;
-const configPath = __filename;
 const isProd = process.env.NODE_ENV === "production";
 const persistentCache = process.env.BENCH_PERSISTENT_CACHE === "1";
 const targetBrowser = "Chrome >= 93";
-const entry = path.join(caseDir, "src", "index.js");
+const entry = path.join(caseDir, "src", "entry.js");
 const babelRuntimeDir = path.dirname(require.resolve("babel-runtime-7-12/package.json"));
 const react17Dir = path.dirname(require.resolve("react17/package.json"));
 const reactDom17Dir = path.dirname(require.resolve("react-dom17/package.json"));
@@ -23,6 +25,7 @@ module.exports = {
   output: {
     path: path.join(caseDir, ".bench-out", "webpack"),
     filename: "[name].js",
+    publicPath: "/",
     clean: true
   },
   resolve: {
@@ -75,10 +78,7 @@ module.exports = {
   cache: persistentCache
     ? {
         type: "filesystem",
-        cacheDirectory: path.join(caseDir, ".bench-cache", "webpack"),
-        buildDependencies: {
-          config: [configPath, entry]
-        }
+        cacheDirectory: path.join(caseDir, ".bench-cache", "webpack")
       }
     : {
         type: "memory"
@@ -92,6 +92,18 @@ module.exports = {
       message: /export.+was not found|only default export is available soon/
     }
   ],
+  plugins: isProd
+    ? []
+    : [
+        new HtmlWebpackPlugin({ templateContent: renderDevHtml() }),
+        new webpack.HotModuleReplacementPlugin(),
+        createBenchCompileTimingPlugin()
+      ],
+  devServer: {
+    hot: true,
+    host: "127.0.0.1",
+    port: Number(process.env.BENCH_DEV_PORT) || undefined
+  },
   watchOptions: {
     ignored: /node_modules/
   },
@@ -135,4 +147,8 @@ function nodeFallbacks() {
       "zlib"
     ].map((name) => [name, false])
   );
+}
+
+function renderDevHtml() {
+  return `<!doctype html><html><head><meta charset="utf-8"><title>Benchmark</title></head><body><div id="react-root"></div><div id="root"></div></body></html>`;
 }

@@ -99,7 +99,7 @@ function renderCaseMarkdown(caseResult, metrics) {
     `## Case: ${caseResult.case.id}
 
 - ID: ${caseResult.case.id}
-- Entry: ${caseResult.case.entry}${caseResult.editTarget ? `\n- Dev edit target: ${caseResult.editTarget}` : ""}`
+- Entry: ${caseResult.case.entry}${renderCaseEditTarget(caseResult)}`
   ];
 
   for (const run of selectRunsForMetrics(metrics)) {
@@ -108,6 +108,19 @@ function renderCaseMarkdown(caseResult, metrics) {
   }
 
   return sections.join("\n\n");
+}
+
+function renderCaseEditTarget(caseResult) {
+  if (caseResult.editTarget) {
+    return `\n- Dev edit target: ${caseResult.editTarget}`;
+  }
+  if (caseResult.editTargets) {
+    const editTargets = Object.entries(caseResult.editTargets)
+      .map(([tool, editTarget]) => `${tool}: ${editTarget}`)
+      .join(", ");
+    return `\n- Dev edit targets: ${editTargets}`;
+  }
+  return "";
 }
 
 export function createCaseResult(benchCase) {

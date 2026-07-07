@@ -27,7 +27,8 @@ export const CASES = {
   },
   "ui-components": {
     id: "ui-components",
-    entry: "bench-cases/ui-components/src/index.js"
+    entry: "bench-cases/ui-components/src/entry.js",
+    editTarget: "bench-cases/ui-components/src/hmr-marker.js"
   },
   "tailwind-hmr": {
     id: "tailwind-hmr",
@@ -35,6 +36,9 @@ export const CASES = {
     nextEntry: "bench-cases/tailwind-hmr/src/next-main.js",
     nextCssImports: ["bench-cases/tailwind-hmr/src/style.css"],
     editTarget: "bench-cases/tailwind-hmr/src/component.tsx",
+    editTargets: {
+      utoo: "bench-cases/tailwind-hmr/src/main.js"
+    },
     prepareScript: "scripts/prepare.mjs",
     generatedDirs: [
       "bench-cases/tailwind-hmr/src/.generated",
@@ -43,8 +47,8 @@ export const CASES = {
   },
   all: {
     id: "all",
-    entry: "bench-cases/all/src/index.js",
-    editTarget: "bench-cases/all/src/babel-runtime.js"
+    entry: "bench-cases/all/src/entry.js",
+    editTarget: "bench-cases/all/src/entry.js"
   }
 };
 
@@ -173,9 +177,10 @@ export async function prepareCase(benchCase, { verbose = false } = {}) {
   });
 }
 
-export async function resolveEditTarget(benchCase) {
-  if (benchCase.editTarget) {
-    const editTarget = path.join(root, benchCase.editTarget);
+export async function resolveEditTarget(benchCase, tool = null) {
+  const editTargetPath = (tool == null ? null : benchCase.editTargets?.[tool]) ?? benchCase.editTarget;
+  if (editTargetPath) {
+    const editTarget = path.join(root, editTargetPath);
     if (fs.existsSync(editTarget)) {
       return editTarget;
     }

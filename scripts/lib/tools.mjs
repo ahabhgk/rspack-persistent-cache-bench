@@ -4,6 +4,7 @@ import { cacheDirFor, nextDistDirFor, nextProjectDir, outputDirFor } from "../ca
 import { bin, root } from "./paths.mjs";
 
 export const TOOL_IDS = ["rspack", "webpack", "next", "utoo"];
+export const DEFAULT_TOOL_IDS = ["rspack", "webpack", "utoo"];
 
 export const BUILD_TARGETS = {
   rspack: {
@@ -26,7 +27,7 @@ export const BUILD_TARGETS = {
     label: "Utoo",
     binary: () => bin("up"),
     cwd: (benchCase) => benchCase.caseRootAbs,
-    command: () => [bin("up"), ["build"]],
+    command: () => [process.execPath, [path.join(root, "node_modules/@utoo/pack-cli/bin/run.js"), "build"]],
     outputDirs: (benchCase) => [path.relative(root, outputDirFor("utoo", benchCase))],
     cacheDirs: (benchCase) =>
       benchCase.id === "all"
@@ -52,18 +53,18 @@ export const BUILD_TARGETS = {
 
 export const DEV_TARGETS = {
   rspack: {
-    label: "Rspack watch",
+    label: "Rspack dev",
     binary: BUILD_TARGETS.rspack.binary,
     cwd: BUILD_TARGETS.rspack.cwd,
-    command: () => [bin("rspack"), ["build", "--watch", "--config", "rspack.config.js"]],
+    command: ({ port }) => [bin("rspack"), ["serve", "--config", "rspack.config.js", "--host", "127.0.0.1", "--port", String(port)]],
     outputDirs: BUILD_TARGETS.rspack.outputDirs,
     cacheDirs: BUILD_TARGETS.rspack.cacheDirs
   },
   webpack: {
-    label: "webpack watch",
+    label: "webpack dev",
     binary: BUILD_TARGETS.webpack.binary,
     cwd: BUILD_TARGETS.webpack.cwd,
-    command: () => [bin("webpack"), ["--watch", "--config", "webpack.config.js"]],
+    command: ({ port }) => [bin("webpack"), ["serve", "--config", "webpack.config.js", "--host", "127.0.0.1", "--port", String(port)]],
     outputDirs: BUILD_TARGETS.webpack.outputDirs,
     cacheDirs: BUILD_TARGETS.webpack.cacheDirs
   },
@@ -71,7 +72,7 @@ export const DEV_TARGETS = {
     label: "Utoo dev",
     binary: BUILD_TARGETS.utoo.binary,
     cwd: BUILD_TARGETS.utoo.cwd,
-    command: () => [bin("up"), ["dev"]],
+    command: () => [process.execPath, [path.join(root, "node_modules/@utoo/pack-cli/bin/run.js"), "dev"]],
     outputDirs: BUILD_TARGETS.utoo.outputDirs,
     cacheDirs: BUILD_TARGETS.utoo.cacheDirs
   },
