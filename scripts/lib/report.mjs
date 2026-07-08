@@ -9,6 +9,7 @@ export function createReport({ createdAt = new Date().toISOString(), metrics, ca
   const report = {
     createdAt,
     kind: "combined",
+    invocation: collectInvocationInfo(),
     metrics: metrics.map((metric) => metric.id),
     system: collectSystemInfo(),
     packageVersions: collectPackageVersions(),
@@ -48,41 +49,28 @@ export function printReport(report, metrics) {
 
 export function writeReport(report, metrics) {
   const resultsDir = path.join(root, ".results");
-  fs.mkdirSync(resultsDir, { recursive: true });
   const stamp = report.createdAt.replaceAll(":", "-").replace(".", "-");
-  const jsonPath = path.join(resultsDir, `benchmark-${stamp}.json`);
-  const mdPath = path.join(resultsDir, `benchmark-${stamp}.md`);
+  const runDir = path.join(resultsDir, `benchmark-${stamp}-${createRunSlug(report)}`);
+  const jsonPath = path.join(runDir, "report.json");
+  const mdPath = path.join(runDir, "summary.md");
 
+  fs.mkdirSync(runDir, { recursive: true });
   fs.writeFileSync(jsonPath, `${JSON.stringify(report, null, 2)}\n`);
   fs.writeFileSync(mdPath, renderMarkdown(report, metrics));
-  console.log(`\nwrote ${path.relative(root, jsonPath)}`);
-  console.log(`wrote ${path.relative(root, mdPath)}`);
 
-  for (const caseResult of report.cases) {
-    const caseReport = createSingleCaseReport(report, caseResult);
-    const caseJsonPath = path.join(resultsDir, `benchmark-${stamp}-${caseResult.case.safeId}.json`);
-    const caseMdPath = path.join(resultsDir, `benchmark-${stamp}-${caseResult.case.safeId}.md`);
-    fs.writeFileSync(caseJsonPath, `${JSON.stringify(caseReport, null, 2)}\n`);
-    fs.writeFileSync(caseMdPath, renderMarkdown(caseReport, metrics));
-    console.log(`wrote ${path.relative(root, caseJsonPath)}`);
-    console.log(`wrote ${path.relative(root, caseMdPath)}`);
-  }
-}
-
-function createSingleCaseReport(report, caseResult) {
-  return {
-    ...report,
-    case: caseResult.case,
-    results: caseResult.runResults,
-    cases: [caseResult]
-  };
+  console.log(`\nwrote ${path.relative(root, mdPath)}`);
+  console.log(`wrote ${path.relative(root, jsonPath)}`);
 }
 
 function renderMarkdown(report, metrics) {
   return `# Persistent Cache Benchmark
 
 - Created: ${report.createdAt}
+- Package script: ${formatOptional(report.invocation.packageScript)}
+- Script command: ${formatOptional(report.invocation.packageScriptCommand)}
+- Node args: ${formatArgs(report.invocation.argv)}
 - Metrics: ${report.metrics.join(", ")}
+- Tools: ${report.options.tools.join(", ")}
 - Node: ${report.system.node}
 - Platform: ${report.system.platform}/${report.system.arch}
 - CPUs: ${report.system.cpus}
@@ -154,4 +142,32 @@ function selectRunsForMetrics(metrics) {
     runs.push(metric.run);
   }
   return runs;
+}
+
+function collectInvocationInfo() {
+  return {
+    packageScript: process.env.npm_lifecycle_event ?? null,
+    packageScriptCommand: process.env.npm_lifecycle_script ?? null,
+    argv: process.argv.slice(2)
+  };
+}
+
+function createRunSlug(report) {
+  const script = safePathSegment(report.invocation.packageScript ?? "node");
+  const cases = report.cases.length === 1 ? safePathSegment(report.cases[0].case.safeId) : `${report.cases.length}cases`;
+  const tools = report.options.tools.map(safePathSegment).join("-");
+
+  return [script, cases, tools].filter(Boolean).join("-");
+}
+
+function safePathSegment(value) {
+  return String(value).replace(/[^a-zA-Z0-9_-]/g, "-");
+}
+
+function formatOptional(value) {
+  return value ? `\`${value}\`` : "n/a";
+}
+
+function formatArgs(args) {
+  return args.length > 0 ? `\`${args.join(" ")}\`` : "none";
 }

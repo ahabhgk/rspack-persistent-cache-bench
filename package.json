@@ -2,6 +2,7 @@
   "name": "rspack-webpack-next-persistent-cache-bench",
   "private": true,
   "version": "0.1.0",
+  "packageManager": "pnpm@11.10.0",
   "type": "module",
   "description": "Benchmark harness comparing persistent-cache build time and peak memory for Rspack, webpack, Next.js Turbopack, and Utoo.",
   "scripts": {
@@ -130,7 +131,8 @@
     "zustand": "^5.0.14"
   },
   "engines": {
-    "node": ">=20.11.0"
+    "node": ">=24 <25",
+    "pnpm": "11.10.0"
   },
   "devDependencies": {
     "@rspack/dev-server": "^2.1.0",

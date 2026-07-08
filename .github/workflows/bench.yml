@@ -1,0 +1,83 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: benchmark-data
+  cancel-in-progress: false
+
+jobs:
+  bench:
+    name: Run benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.10.0
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run benchmark
+        run: pnpm run bench
+
+      - name: Collect benchmark summary
+        id: summary
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          latest_summary="$(find .results -type f -name summary.md -print | sort | tail -n 1)"
+          if [[ -z "${latest_summary}" ]]; then
+            echo "No benchmark summary was generated under .results" >&2
+            exit 1
+          fi
+
+          cp "${latest_summary}" benchmark-summary.md
+          echo "path=${latest_summary}" >> "${GITHUB_OUTPUT}"
+
+      - name: Update data branch README
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin data >/dev/null 2>&1; then
+            git fetch --depth=1 origin data
+            git worktree add --detach data-branch FETCH_HEAD
+          else
+            git worktree add --detach --no-checkout data-branch
+            git -C data-branch switch --orphan data
+          fi
+
+          cp benchmark-summary.md data-branch/README.md
+          git -C data-branch add README.md
+
+          if git -C data-branch diff --cached --quiet; then
+            echo "data branch README.md is already up to date"
+            exit 0
+          fi
+
+          git -C data-branch commit -m "Update benchmark results"
+          git -C data-branch push origin HEAD:data

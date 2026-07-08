@@ -55,7 +55,7 @@ npm install
 npm run bench
 ```
 
-默认会跑全部内置 case，每个 case 下分别跑 Rspack、webpack、Utoo，并同时统计 `prod` 和 `dev` 下的全部指标；Next.js Turbopack 保留为显式工具，可以用 `--tools=next` 或 `npm run bench:next` 单独测。生产 build 每种模式测 3 次；dev 每种 cache 模式持续修改 5 次文件，并在同一次 HMR run 里记录 HMR 构建完成耗时和浏览器执行耗时。结果会按 case 分开打印，并写出一个总报告和每个 case 各自的 Markdown/JSON 报告文件。
+默认会跑全部内置 case，每个 case 下分别跑 Rspack、webpack、Utoo，并同时统计 `prod` 和 `dev` 下的全部指标；Next.js Turbopack 保留为显式工具，可以用 `--tools=next` 或 `npm run bench:next` 单独测。生产 build 每种模式测 3 次；dev 每种 cache 模式持续修改 5 次文件，并在同一次 HMR run 里记录 HMR 构建完成耗时和浏览器执行耗时。结果会按 case 分开打印；每次 bench 命令会写入一个独立结果目录，目录里只有一个 Markdown 汇总和一个完整 JSON 原始报告。
 
 查看可用 case：
 
@@ -130,16 +130,14 @@ npm run bench:next:dev:persistent
 
 这些命令使用 case 目录里的 `rspack.config.js`、`webpack.config.js`、`next.config.mjs`、`utoopack.config.mjs`。`bench:*:watch` 是兼容旧命名的脚本，实际会启动 Rspack/webpack dev server。`npm run bench -- --case=...` 也是直接调用同一批 case 配置文件，不再通过仓库根目录的 Rspack/webpack 配置分发。
 
-结果会同时打印到终端并写入：
+结果会同时打印到终端并写入一个独立目录，目录名包含时间、package script、case 数量和 tool：
 
 ```text
-.results/benchmark-<timestamp>.json
-.results/benchmark-<timestamp>.md
-.results/benchmark-<timestamp>-<case>.json
-.results/benchmark-<timestamp>-<case>.md
+.results/benchmark-<timestamp>-<script>-<case-or-count>-<tools>/summary.md
+.results/benchmark-<timestamp>-<script>-<case-or-count>-<tools>/report.json
 ```
 
-合并报告会按 case 输出 `Run: prod` 和 `Run: dev` 表格；表格列由选中的 metrics 决定。比如只选择 `prod_build_duration_memory,prod_build_duration_persistent,prod_build_duration_saved` 时，只会跑一次 prod run，然后只渲染 prod 构建耗时相关列。
+`summary.md` 会按 case 输出 `Run: prod` 和 `Run: dev` 表格，并在文件顶部记录本次运行的 package script、Node args、case、tool、metrics 和环境信息；`report.json` 保留完整原始数据。表格列由选中的 metrics 决定。比如只选择 `prod_build_duration_memory,prod_build_duration_persistent,prod_build_duration_saved` 时，只会跑一次 prod run，然后只渲染 prod 构建耗时相关列。
 
 ## 对比方式
 
