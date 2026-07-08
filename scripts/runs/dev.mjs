@@ -112,7 +112,7 @@ async function runDevSession(tool, target, persistentCache, options, benchCase, 
     serverPort = tool === "utoo" ? parseUtooPort(readyOutput) : port;
     const url = `http://127.0.0.1:${serverPort}/`;
 
-    browser = await puppeteer.launch();
+    browser = await puppeteer.launch(createBrowserLaunchOptions());
     page = await browser.newPage();
     attachVerbosePageLogging(page, options, target.label);
     const pageHmrReady = waitForInitialPageHmrReady(page, tool, options.requestTimeoutMs);
@@ -261,6 +261,16 @@ function waitForInitialPageHmrReady(page, tool, timeoutMs) {
     return null;
   }
   return waitForPageConsole(page, (text) => /\[HMR\]\s+connected/i.test(text), timeoutMs);
+}
+
+function createBrowserLaunchOptions() {
+  if (process.env.GITHUB_ACTIONS !== "true" && process.env.CI !== "true" && process.env.CI !== "1") {
+    return {};
+  }
+
+  return {
+    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+  };
 }
 
 async function waitBeforeFirstEdit(pageHmrReady, tool, benchCase) {
